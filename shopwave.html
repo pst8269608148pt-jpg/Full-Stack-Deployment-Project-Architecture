@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shopwave – Product Catalog</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f7f9;--card:#fff;--tx:#14171f;--mut:#5d6575;--bd:#e2e5ea;--ac:#4f46e5;--act:#fff}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1218;--card:#181c25;--tx:#eceff4;--mut:#9aa3b2;--bd:#2a3040;--ac:#818cf8;--act:#0f1218}}
+:root[data-theme="dark"]{--bg:#0f1218;--card:#181c25;--tx:#eceff4;--mut:#9aa3b2;--bd:#2a3040;--ac:#818cf8;--act:#0f1218}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--bd)}
+nav{max-width:1000px;margin:auto;display:flex;align-items:center;gap:16px;padding:12px 16px}
+nav .logo{font-weight:800;font-size:1.2rem;color:var(--ac);margin-right:auto;text-decoration:none}
+nav a{color:var(--tx);text-decoration:none;font-weight:500}
+nav a.on{color:var(--ac)}
+main{max-width:1000px;margin:auto;padding:20px 16px 60px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+input,select,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:9px 12px}
+input{flex:1;min-width:160px}
+button{cursor:pointer}
+.btn{background:var(--ac);color:var(--act);border-color:var(--ac);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;display:block}
+.card:hover{border-color:var(--ac)}
+.img{aspect-ratio:4/3;display:grid;place-items:center;font-size:3.4rem}
+.card .b{padding:12px 14px}
+.card h3{margin:0 0 4px;font-size:1rem}
+.mut{color:var(--mut);font-size:.9rem}
+.price{font-weight:700}
+.detail{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.detail .img{border-radius:14px;font-size:7rem}
+@media(max-width:640px){.detail{grid-template-columns:1fr}}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)}
+.row .t{flex:1}
+.row .th{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;font-size:1.6rem}
+.badge{background:var(--ac);color:var(--act);border-radius:99px;padding:0 7px;font-size:.78rem;margin-left:4px}
+ol li{margin:8px 0}
+code{background:var(--card);border:1px solid var(--bd);padding:1px 6px;border-radius:6px;font-size:.9em}
+.pre{overflow-x:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px}
+</style>
+</head>
+<body>
+<header><nav id="nav"></nav></header>
+<main id="app" aria-live="polite"></main>
+<script>
+"use strict";
+/* ===== MODULE: data ===== */
+const PRODUCTS=[
+["Aero Headphones","Audio",129,4.6,"🎧",250,"Wireless over-ear headphones with 40-hour battery and active noise cancelling."],
+["Pulse Earbuds","Audio",79,4.3,"🎵",200,"Compact true-wireless earbuds with a pocketable charging case."],
+["Beam Speaker","Audio",59,4.4,"🔊",280,"Water-resistant Bluetooth speaker with punchy 360° sound."],
+["Zen Keyboard","Office",99,4.7,"⌨️",160,"Low-profile mechanical keyboard with hot-swappable switches."],
+["Glide Mouse","Office",45,4.5,"🖱️",190,"Ergonomic wireless mouse with silent clicks and USB-C charging."],
+["Lumen Lamp","Home",39,4.2,"💡",45,"Dimmable desk lamp with warm and cool light modes."],
+["Brew Kettle","Home",54,4.6,"☕",20,"Temperature-controlled gooseneck kettle for pour-over coffee."],
+["Nest Plant Pot","Home",24,4.1,"🪴",130,"Self-watering ceramic planter for small indoor plants."],
+["Trail Backpack","Outdoor",89,4.8,"🎒",100,"Lightweight 24L daypack with rain cover and laptop sleeve."],
+["Peak Bottle","Outdoor",29,4.4,"🧴",210,"Insulated steel bottle keeping drinks cold 24h or hot 12h."],
+["Orbit Watch","Wearables",149,4.3,"⌚",230,"Fitness smartwatch with GPS, heart-rate tracking and 7-day battery."],
+["Link Charger","Office",35,4.5,"🔌",60,"65W GaN charger with three ports for laptop, phone and tablet."]
+].map((p,i)=>({id:i+1,name:p[0],cat:p[1],price:p[2],rating:p[3],emoji:p[4],hue:p[5],desc:p[6]}));
+
+/* ===== MODULE: store (cart + persistence) ===== */
+const Store=(()=>{
+  let cart={};
+  try{cart=JSON.parse(localStorage.getItem("sw-cart")||"{}")||{}}catch(e){cart={}}
+  const save=()=>{try{localStorage.setItem("sw-cart",JSON.stringify(cart))}catch(e){}};
+  return{
+    add(id){cart[id]=(cart[id]||0)+1;save()},
+    set(id,q){q<=0?delete cart[id]:cart[id]=q;save()},
+    clear(){cart={};save()},
+    items(){return Object.keys(cart).map(id=>({p:PRODUCTS.find(x=>x.id==id),q:cart[id]})).filter(i=>i.p)},
+    count(){return Object.values(cart).reduce((a,b)=>a+b,0)},
+    total(){return this.items().reduce((s,i)=>s+i.p.price*i.q,0)}
+  };
+})();
+
+/* ===== MODULE: utils ===== */
+const $=(s)=>document.querySelector(s);
+const money=n=>"$"+n.toFixed(2);
+const bg=h=>`background:linear-gradient(135deg,hsl(${h} 70% 82%),hsl(${(h+40)%360} 70% 70%))`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const debounce=(fn,ms=150)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
+
+/* ===== MODULE: components ===== */
+const Nav=(route)=>{
+  const l=(h,t)=>`<a href="#${h}" class="${route===h?"on":""}">${t}</a>`;
+  $("#nav").innerHTML=`<a class="logo" href="#catalog">🛍️ Shopwave</a>${l("catalog","Shop")}${l("deploy","Deploy")}<a href="#cart" class="${route==="cart"?"on":""}">Cart<span class="badge">${Store.count()}</span></a>`;
+};
+const Card=p=>`<a class="card" href="#product-${p.id}"><div class="img" style="${bg(p.hue)}" role="img" aria-label="${esc(p.name)}">${p.emoji}</div><div class="b"><h3>${esc(p.name)}</h3><div class="mut">${p.cat} · ★ ${p.rating}</div><div class="price">${money(p.price)}</div></div></a>`;
+
+/* ===== MODULE: views ===== */
+const view={q:"",cat:"All",sort:"featured"};
+const Views={
+  catalog(){
+    const cats=["All",...new Set(PRODUCTS.map(p=>p.cat))];
+    $("#app").innerHTML=`<div class="bar"><input id="q" type="search" placeholder="Search products…" value="${esc(view.q)}" aria-label="Search"><select id="cat" aria-label="Category">${cats.map(c=>`<option ${c===view.cat?"selected":""}>${c}</option>`).join("")}</select><select id="sort" aria-label="Sort"><option value="featured">Featured</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="rating">Top rated</option></select></div><div class="grid" id="grid"></div>`;
+    $("#sort").value=view.sort;
+    const draw=()=>{
+      let r=PRODUCTS.filter(p=>(view.cat==="All"||p.cat===view.cat)&&(p.name+p.desc).toLowerCase().includes(view.q.toLowerCase()));
+      const s={low:(a,b)=>a.price-b.price,high:(a,b)=>b.price-a.price,rating:(a,b)=>b.rating-a.rating}[view.sort];
+      if(s)r=[...r].sort(s);
+      $("#grid").innerHTML=r.length?r.map(Card).join(""):`<p class="mut">No products match your search.</p>`;
+    };
+    $("#q").oninput=debounce(e=>{view.q=e.target.value;draw()});
+    $("#cat").onchange=e=>{view.cat=e.target.value;draw()};
+    $("#sort").onchange=e=>{view.sort=e.target.value;draw()};
+    draw();
+  },
+  product(id){
+    const p=PRODUCTS.find(x=>x.id==id);
+    if(!p)return Views.notfound();
+    const rel=PRODUCTS.filter(x=>x.cat===p.cat&&x.id!==p.id).slice(0,3);
+    $("#app").innerHTML=`<p><a href="#catalog">← Back to shop</a></p><div class="detail"><div class="img" style="${bg(p.hue)}">${p.emoji}</div><div><h1 style="margin-top:0">${esc(p.name)}</h1><div class="mut">${p.cat} · ★ ${p.rating}</div><p>${esc(p.desc)}</p><p class="price" style="font-size:1.6rem">${money(p.price)}</p><button class="btn" id="add">Add to cart</button></div></div>${rel.length?`<h2>You may also like</h2><div class="grid">${rel.map(Card).join("")}</div>`:""}`;
+    $("#add").onclick=e=>{Store.add(p.id);Nav("product");e.target.textContent="Added ✓"};
+  },
+  cart(){
+    const it=Store.items();
+    if(!it.length){$("#app").innerHTML=`<h1>Your cart</h1><p class="mut">It's empty. <a href="#catalog">Browse products</a></p>`;return}
+    $("#app").innerHTML=`<h1>Your cart</h1>${it.map(({p,q})=>`<div class="row"><div class="th" style="${bg(p.hue)}">${p.emoji}</div><div class="t"><a href="#product-${p.id}">${esc(p.name)}</a><div class="mut">${money(p.price)}</div></div><button data-d="${p.id}" aria-label="Decrease">−</button><span>${q}</span><button data-i="${p.id}" aria-label="Increase">+</button></div>`).join("")}<p class="price" style="font-size:1.3rem">Total: ${money(Store.total())}</p><button class="btn" id="co">Checkout (demo)</button>`;
+    $("#app").onclick=e=>{const d=e.target.dataset;if(d.i||d.d){const id=d.i||d.d;const c=Store.items().find(x=>x.p.id==id).q;Store.set(id,c+(d.i?1:-1));Router.render()}};
+    $("#co").onclick=()=>{Store.clear();$("#app").innerHTML=`<h1>Thank you! 🎉</h1><p>This is a demo checkout, so no payment was taken.</p><a href="#catalog">Keep shopping</a>`;Nav("cart")};
+  },
+  deploy(){
+    $("#app").innerHTML=`<h1>Production build &amp; deployment</h1><p class="mut">How this capstone maps to a real project, and how to ship it.</p>
+<h2>Architecture</h2><p>Modules: <code>data</code>, <code>store</code>, <code>router</code>, <code>components</code>, <code>views</code>. Each has one job and talks to the others through small functions.</p>
+<h2>Performance choices</h2><ul><li>Zero image requests: product art is CSS gradients plus emoji.</li><li>Zero dependencies and no framework runtime.</li><li>Debounced search, one render per view, lazy product lookups.</li><li>Semantic HTML, labels and aria for accessibility; dark mode via CSS tokens.</li></ul>
+<h2>Ship it with Vite + Netlify or Vercel</h2><div class="pre"><pre>npm create vite@latest shopwave -- --template vanilla
+cd shopwave &amp;&amp; npm install
+# split this file into src/data.js, store.js, router.js, views.js
+npm run build        # minifies JS/CSS into dist/
+npx netlify deploy --prod --dir=dist
+# or: npx vercel --prod</pre></div>
+<p>For path-style routes (<code>/product/3</code>) add a SPA fallback: Netlify <code>_redirects</code> with <code>/* /index.html 200</code>, or Vercel <code>vercel.json</code> rewrites to <code>/index.html</code>.</p>
+<h2>Image optimization</h2><p>With real photos, convert to WebP/AVIF, set width/height, use <code>loading="lazy"</code> and <code>srcset</code>.</p>`;
+  },
+  notfound(){$("#app").innerHTML=`<h1>Page not found</h1><a href="#catalog">Back to shop</a>`}
+};
+
+/* ===== MODULE: router (hash-based, client-side) ===== */
+const Router={
+  render(){
+    const h=(location.hash||"#catalog").slice(1);
+    const m=h.match(/^product-(\d+)$/);
+    const name=m?"product":(Views[h]&&h!=="notfound"?h:"notfound");
+    Nav(name==="notfound"?"":name);
+    Views[name](m?m[1]:undefined);
+    if(name!=="catalog")scrollTo(0,0);
+    document.title=(name==="product"?(PRODUCTS.find(p=>p.id==m[1])||{name:"Shopwave"}).name:name[0].toUpperCase()+name.slice(1))+" – Shopwave";
+  },
+  start(){addEventListener("hashchange",()=>Router.render());Router.render()}
+};
+Router.start();
+</script>
+</body>
+</html>
